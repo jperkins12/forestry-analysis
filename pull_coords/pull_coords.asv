@@ -1,0 +1,83 @@
+%Extract_Coords
+%Use to extract geographic coords for trees from OR data collected year
+%2015
+%Author: Jamie Perkins
+%jp2081@wildcats.unh.edu
+
+
+
+%Spreadsheet Params
+path = 'E:\OR_Data_2015\Graduate-Field Season\OR_Data_2015\Crook\OH2\OH2.xlsx';
+sheet = 'Stem Map';
+
+%inputs the excel file and the worksheet, outputs string with cell range
+function rangeStr = findRange(xlspath,xlssheet)
+%find size of first column
+rawData = readtable(xlspath,'ReadVariableNames',false,'Sheet',xlssheet);
+firstCol = rawData.Var1;
+
+%start and endIndex are row values for table import
+[endIndex,ncols] = size(firstCol);
+start = strncmp('Tree',firstCol,4);
+
+cellVals = 'A%d:I%d';
+%format row values into string
+rangeStr = sprintf(cellVals,start,endIndex);
+
+%close out data
+clear rawData
+clear firstCol
+end
+
+function [localx,localy] = getLocal(excelpath,excelsheet,cellRange)
+%read into table
+treeInfo = readtable(excelpath,'Sheet',excelsheet,'Range',cellRange);
+%check for proper headers
+hdrs = treeInfo.Properties.VariableNames;
+
+if strncmp('Tree', hdrs(1),4) ~= 1
+    print('Start column has wrong header!')
+elseif strncmp('Measure',hdrs(end),4) ~= 1
+    print('End column has wrong header!')
+end
+
+%make necessary calcs
+rads = degtorad(treeInfo.Azi);
+sinArray = sin(rads);
+cosArray = cos(rads);
+relx = sinArray.*treeInfo.Distance;
+rely = cosArray.*treeInfo.Distance;
+
+%define empty arrays for later conditional operations
+cellSize = size(relx);
+localx = cell(cellSize);
+localy = cell(cellSize);
+
+iter_end = length(relx);
+cellList = treeInfo.Cell;
+
+%conditional for local arrays
+for i = 1:iter_end
+    currentx = relx(i);
+    currenty = rely(i);
+    cellVal = cellList(i);
+    %x coordinate conditional
+    if strncmp('A',cellVal,1) == 1
+        xcoord = currentx - 10;
+    else
+        xcoord = currentx + 10;
+    end
+    %y coordinate conditional
+    if strncmp('1',cellVal,2) == 1
+        ycoord = currenty - 10;
+    else
+        ycoord = currenty +  10;
+    end    
+    %fill cell arrays
+    localx{i,1} = xcoord;
+    localy{i,1} = ycoord;
+end
+end
+
+cellStr = rangeStr(path,sheet);
+[lclx,lcly] = getLocal(path,sheet,cellStr);
