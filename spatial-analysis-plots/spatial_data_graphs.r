@@ -19,6 +19,7 @@ savepng = function(filename) {
   
 }
 
+# adds linear equation and r-squared to plot
 lm_eqn <- function(df){
   y <- df[,1]
   x <- df[,2]
@@ -30,18 +31,54 @@ lm_eqn <- function(df){
   as.character(as.expression(eq));                 
 }
 
+
+# generate single plot
+
+plotvars <- function(datatable, xcol, ycol, xlab, ylab, title, eqx, eqy, grouping=FALSE, groupvar=NULL, groupdata=NULL, groupdata2=NULL, eqx2=NULL, eqy2=NULL){
+  
+  plot = ggplot(datatable, aes_string(x=xcol, y=ycol, color=groupvar))
+  plot = plot + geom_point() + geom_smooth(method=lm, formula = y ~ poly(x,2))
+  plot = plot + theme(panel.background =  element_rect(fill = 'white', colour = 'red'), panel.grid.major = element_line(colour = 'black', linetype = 'dotted'))
+  plot = plot + labs(title=title, x=xlab, y=ylab)
+  
+  if (grouping == FALSE) {
+    
+    plot = plot + geom_text(x=eqx, y=eqy, label=lm_eqn(data.frame(datatable[[ycol]],datatable[[xcol]])), parse = TRUE)
+    
+  } else {
+    
+    plot = plot + geom_text(x=eqx, y=eqy, label=lm_eqn(data.frame(groupdata[[ycol]], groupdata[[xcol]])), parse = TRUE, aes(color="N", fill='white'))
+    plot = plot + geom_text(x=eqx2, y=eqy2, label=lm_eqn(data.frame(groupdata2[[ycol]], groupdata2[[xcol]])), parse = TRUE, aes(color="Y", fill='white'))
+    
+  }
+  
+  
+  plot
+  
+}
+
 ### ----------
 
 # mingling graph
-minglingplot = ggplot(datatable, aes(x=Species.Richness, y=Mingling))
-minglingplot = minglingplot + geom_point() + geom_smooth(method=lm, formula = y ~ poly(x,2))
-minglingplot = minglingplot + theme(panel.background =  element_rect(fill = 'white', colour = 'red'), panel.grid.major = element_line(colour = 'black', linetype = 'dotted'))
-minglingplot = minglingplot + labs(title='Species mingling as a function of species richness', x='Species Richness', y='Species Mingling')
-minglingplot = minglingplot + geom_text(x=3, y=0.75, label=lm_eqn(data.frame(datatable$Mingling,datatable$Species.Richness)), parse = TRUE)
+xvar = 'Species.Richness'
+xlab = 'Species Richness'
+yvar = 'Mingling'
+ylab = 'Species Mingling'
+titletext = 'Species mingling as a function of species richness'
+eqx = 3
+eqy = 0.75
 
-minglingplot
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
 
-savepng('minglingvsrich.png')
+#savepng('minglingvsrich.png')
+
+groupvar = 'Public.Land'
+eqx2 = 3
+eqy2 = 0.83
+titletext = 'Species mingling as a function of species richness, grouped by land ownership'
+
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, grouping = TRUE, groupvar = groupvar, groupdata = privatetable, groupdata2 = publictable, eqx2 = eqx2, eqy2 = eqy2)
+
 
 # with group
 minglinggroup = ggplot(datatable, aes(x=Species.Richness, y=Mingling, color=Public.Land))
