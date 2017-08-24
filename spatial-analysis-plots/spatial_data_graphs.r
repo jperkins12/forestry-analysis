@@ -89,10 +89,9 @@ savepng('minglingvsrich.png')
 groupvar = 'Public.Land'
 eqx2 = 3
 eqy2 = 0.83
-titletext = 'Species mingling as a function of species richness, grouped by land ownership'
+titletext = 'Species mingling as a function of species richness,\ngrouped by land ownership'
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, grouping = TRUE, groupvar = groupvar, groupdata = privatetable, groupdata2 = publictable, eqx2 = eqx2, eqy2 = eqy2)
-
 
 savepng('minglinggroup.png')
 
