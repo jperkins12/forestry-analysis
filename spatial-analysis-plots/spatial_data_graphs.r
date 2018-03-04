@@ -21,10 +21,12 @@ loadPackages(required.packages)
 # load data
 # source("dataLoader.R")
 # datatable = loadData()
- datatable = read.csv('C:\\Users\\Jamie\\Dropbox\\Thesis\\R\\tables\\all_data.csv', row.names = 1)
+datatable = read.csv('C:\\Users\\Jamie\\Dropbox\\Thesis\\R\\tables\\forestdata.csv', row.names = 1)
+# make biomass more readable
+datatable$biok = round(datatable$bioha/1000)
 # with groupings
-publictable = datatable[datatable$`Public.Land`=='Y',]
-privatetable = datatable[datatable$`Public.Land`=='N',]
+publictable = datatable[datatable$public=='Y',]
+privatetable = datatable[datatable$public=='N',]
 
 savepng = function(filename) {
   
@@ -79,7 +81,7 @@ plotvars <- function(datatable, xcol, ycol, xlab, ylab, title, eqx, eqy, groupin
     
     plot = plot + geom_text(x=eqx, y=eqy, label=lm_eqn(data.frame(groupdata[[ycol]], groupdata[[xcol]])), parse = TRUE, aes(color="N", fill='white'))
     plot = plot + geom_text(x=eqx2, y=eqy2, label=lm_eqn(data.frame(groupdata2[[ycol]], groupdata2[[xcol]])), parse = TRUE, aes(color="Y", fill='white'))
-    
+    plot = plot + labs(color="Public Land")
   }
   
   
@@ -89,11 +91,38 @@ plotvars <- function(datatable, xcol, ycol, xlab, ylab, title, eqx, eqy, groupin
 
 ### ----------
 ###########################################
+# nearest neighbor graph
+###########################################
+xvar = 'tpha'
+xlab = 'Trees/ha'
+yvar = 'nearest'
+ylab = 'Nearest Neighbor (m)'
+titletext = 'Mean Nearset Neighbor as a function of trees per hectare'
+eqx = 900
+eqy = 5.15
+
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
+
+savepng('nearvstph.png')
+
+xvar = 'qmd'
+xlab = 'Quadratic Mean Diameter (cm)'
+yvar = 'nearest'
+ylab = 'Nearest Neighbor (m)'
+titletext = 'Mean Nearset Neighbor as a function of quadratic mean diameter'
+eqx = 20
+eqy = 6.5
+
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
+
+savepng('nearvsqmd.png')
+
+###########################################
 #mingling vs Shannon graph
 ###########################################
-xvar = 'shannon'
+xvar = 'Shannon'
 xlab = 'Shannon Index'
-yvar = 'Mingling'
+yvar = 'mingling'
 ylab = 'Species Mingling'
 titletext = 'Species mingling as a function of species diversity'
 eqx = 0.3
@@ -103,7 +132,7 @@ plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = 
 
 savepng('minglingvsrich.png')
 
-groupvar = 'Public.Land'
+groupvar = 'public'
 eqx = 0.4
 eqy = 0.65
 eqx2 = 0.4
@@ -115,90 +144,94 @@ plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = 
 savepng('minglinggroup.png')
 
 ###########################################
-# mingling vs PINPON graph
+# mingling vs biomass graph
 ###########################################
-xvar = 'PINPON'
-xlab = 'Relative PINPON Abundance'
-yvar = 'Mingling'
+xvar = 'biok'
+xlab = 'Above Ground Biomass ((10^3)kg/ha)'
+yvar = 'mingling'
 ylab = 'Species Mingling'
-titletext = 'Species mingling as a function of relative PINPON abundance'
-eqx = 0.8
-eqy = 0.8
+titletext = 'Species mingling as a function of above ground biomass'
+eqx = 285
+eqy = 0.65
 
-plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, ylim = 1)
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
 
-savepng('minglingpinpon.png')
-
-# with group
-groupvar = 'Public.Land'
-eqx = 0.8
-eqy = 0.9
-eqx2 = 0.8
-eqy2 = 0.84
-titletext = 'Species mingling as a function of relative PINPON abundance, grouped by land ownership'
-
-plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, grouping = TRUE, groupvar = groupvar, groupdata = privatetable, groupdata2 = publictable, eqx2 = eqx2, eqy2 = eqy2, ylim = 1)
-
-savepng('pinpongroup.png')
+savepng('minglingbiomass.png')
 
 ###########################################
 # contagion graph
 # apply scale of management
 ###########################################
-xvar = 'PINPON'
-xlab = 'Relative PINPON Abundance'
-yvar = 'Contagion'
-ylab = 'Stand Contagion'
-titletext = 'Stand contagion as a function of species diversity'
-eqx = 0.7
-eqy = 0.65
-
-plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
-
 # by diversity
 
-xvar = 'shannon'
+xvar = 'Shannon'
 xlab = 'Shannon Index'
-yvar = 'Contagion'
+yvar = 'contagion'
 ylab = 'Stand Contagion'
 titletext = 'Stand contagion as a function of species diversity'
-eqx = 1.4
-eqy = 0.65
+eqx = 1.45
+eqy = 0.655
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
 
-savepng('contagionvsrich.png')
+savepng('contagionvsdiv.png')
 
 # with group
-groupvar = 'Public.Land'
+groupvar = 'public'
 eqx = 1.3
-eqy = 0.69
+eqy = 0.72
 eqx2 = 1.3
-eqy2 = 0.68
+eqy2 = 0.71
 titletext = 'Stand contagion as a function of species diversity, grouped by land ownership'
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, grouping = TRUE, groupvar = groupvar, groupdata = privatetable, groupdata2 = publictable, eqx2 = eqx2, eqy2 = eqy2)
 
 savepng('contagiongroup.png')
 
-###########################################
-# DBH vs QMD graph
-###########################################
-xvar = 'Quadratic.Mean.Diameter'
-xlab = 'Quadratic Mean Diameter'
-yvar = 'DBH.Differentiation'
-ylab = 'DBH Differentiation'
-titletext = 'DBH differentiation as a function of QMD'
-eqx = 62
-eqy = 0.55
+# by biomass
+
+xvar = 'biok'
+xlab = 'Above Ground Biomass ((10^3)kg/ha)'
+yvar = 'contagion'
+ylab = 'Stand Contagion'
+titletext = 'Stand contagion as a function of quadratic mean diameter'
+eqx = 40
+eqy = 0.655
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
 
-savepng('dbhdiff.png')
+savepng('contagionvsqmd.png')
+
+# with group
+groupvar = 'public'
+eqx = 40
+eqy = 0.71
+eqx2 = 40
+eqy2 = 0.69
+titletext = 'Stand contagion as a function of quadratic mean diameter, grouped by land ownership'
+
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, grouping = TRUE, groupvar = groupvar, groupdata = privatetable, groupdata2 = publictable, eqx2 = eqx2, eqy2 = eqy2)
+
+savepng('contagionqmdgroup.png')
+
+###########################################
+# DBH vs QMD graph
+###########################################
+xvar = 'qmd'
+xlab = 'Quadratic Mean Diameter'
+yvar = 'dbhdiff'
+ylab = 'DBH Differentiation'
+titletext = 'DBH differentiation as a function of QMD'
+eqx = 25
+eqy = 0.51
+
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
+
+savepng('dbhdiffqmd.png')
 
 # with group
 
-groupvar = 'Public.Land'
+groupvar = 'public'
 eqx = 62
 eqy = 0.55
 eqx2 = 62
@@ -208,13 +241,13 @@ titletext = 'DBH Differentiation as a function of QMD, grouped by land ownership
 ###########################################
 # DBH vs Basal Area graph
 ###########################################
-xvar = 'Basal.Area..m.2.ha.'
+xvar = 'baha'
 xlab = 'Basal Area (m2/ha)'
-yvar = 'DBH.Differentiation'
+yvar = 'dbhdiff'
 ylab = 'DBH Differentiation'
 titletext = 'DBH differentiation as a function of Basal Area'
-eqx = 62
-eqy = 0.55
+eqx = 50
+eqy = 0.52
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
 
@@ -222,48 +255,60 @@ savepng('dbhdiffbasal.png')
 
 # with group
 
-groupvar = 'Public.Land'
-eqx = 62
-eqy = 0.55
-eqx2 = 62
-eqy2 = 0.52
+groupvar = 'public'
+eqx = 40
+eqy = 0.53
+eqx2 = 40
+eqy2 = 0.51
 titletext = 'DBH Differentiation as a function of Basal Area, grouped by land ownership'
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, grouping = TRUE, groupvar = groupvar, groupdata = privatetable, groupdata2 = publictable, eqx2 = eqx2, eqy2 = eqy2)
 
 savepng('dbhgroupbasal.png')
 
+####
+
+xvar = 'tpha'
+xlab = 'Trees per hectare'
+yvar = 'dbhdiff'
+ylab = 'DBH Differentiation'
+titletext = 'DBH differentiation as a function of Basal Area'
+eqx = 400
+eqy = 0.52
+
+plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
+savepng('dbhdifftpa.png')
 ###########################################
 # DBH vs Biomass Area graph
 ###########################################
-xvar = 'Biomass..kg.m.2.'
-xlab = 'Biomass (kg/m2)'
-yvar = 'DBH.Differentiation'
+xvar = 'biok'
+xlab = 'Biomass ((10^3)kg/m2)'
+yvar = 'dbhdiff'
 ylab = 'DBH Differentiation'
-titletext = 'DBH differentiation as a function of Basal Area'
-eqx = 1200
-eqy = 0.51
+titletext = 'DBH differentiation as a function of above ground biomass'
+eqx = 300
+eqy = 0.52
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)
 
-savepng('dbhdiffbasal.png')
+savepng('dbhdiffbio.png')
 
 # with group
 
-groupvar = 'Public.Land'
-eqx = 1200
-eqy = 0.51
-eqx2 = 1200
-eqy2 = 0.53
-titletext = 'DBH Differentiation as a function of Biomass, grouped by land ownership'
+groupvar = 'public'
+eqx = 280
+eqy = 0.52
+eqx2 = 280
+eqy2 = 0.54
+titletext = 'DBH Differentiation as a function of above ground biomass, grouped by land ownership'
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy, grouping = TRUE, groupvar = groupvar, groupdata = privatetable, groupdata2 = publictable, eqx2 = eqx2, eqy2 = eqy2)
 
-savepng('dbhgroupbasal.png')
+savepng('dbhgroupbio.png')
 
 
 # t test
-compared.means = ggplot(datatable, aes(x=Public.Land, y=DBH.Differentiation)) + geom_point()
+compared.means = ggplot(datatable, aes(x=public, y=dbhdiff)) + geom_point()
 compared.means = compared.means + labs(title='Comparison of means for DBH Differentiation values by Land Ownership', x='Land Ownership', y='DBH Differentiation') + geom_boxplot(color='blue') + theme(panel.background =  element_rect(fill = 'white', colour = 'red'), panel.grid.major = element_line(colour = 'black', linetype = 'dotted')) + scale_x_discrete(labels = c('Private', 'Public'))
 compared.means
 

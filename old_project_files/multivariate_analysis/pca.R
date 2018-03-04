@@ -1,29 +1,57 @@
+library(BiodiversityR)
+library(vegan)
+library(ggplot2)
+
+savepng = function(filename) {
+    
+    path = 'C:\\Users\\Jamie\\Dropbox\\Thesis\\graphics'
+    save_path = file.path(path, filename)
+    ggsave(save_path, width = 7.5, height = 5, dpi = 100)
+    
+}
+
 # principle_components_analysis
 
-# NMDS
+# load multivariate data
+datatable = read.csv('C:\\Users\\Jamie\\Dropbox\\Thesis\\R\\tables\\forestdata.csv', row.names = 1)
 
-require("vegan")
-require("ggplot2")
+speciesframe = datatable[,c("ABICON", "ABIGRA", "ABILAS", "ACCI", "JUNOCC", "LARILAR", "LAROCC", "PICENG", "PINCON", "PINPON", "POPTRE", "PSEMEN")]
 
-# load in data tables
-main_datapath = 'F:\\Box Sync\\OR_Data_Extra\\PCORD_Analysis\\main_mat.csv'
-supp_datapath = 'F:\\Box Sync\\OR_Data_Extra\\PCORD_Analysis\\sec_mat.csv'
+# lapply(speciesframe[colnames(speciesframe)], x/sum)
 
-# load data with first col as row names
-main_data = read.csv(main_datapath, row.names = 1)
-supp_data = read.csv(supp_datapath, row.names = 1)
-# species X environment matrix = A'E
-community = t(main_data) %% supp_data
+# relativize species abundance by PLOT
+speciesframe = sweep(speciesframe, 1, rowSums(speciesframe), '/')
 
-data.pca = princomp(cbind(main_data,supp_data[,1:ncol(supp_data)-1]))
-pcafig = ordiplot(data.pca)
-ordilabel(pcafig, "species", col=2, cex=0.5, )
-ordihull(pcafig, group=supp_data$PublicLand, col = c(2,3))
-pcafig
+speciesframe = cbind(speciesframe, datatable[,c("Richness", "Shannon", "Simpson", "tpha", "baha", "qmd", "bioha")])
+# relativize tpha and bioha by column MAX
+speciesframe$tpha = speciesframe$tpha/max(speciesframe$tpha)
+speciesframe$bioha = speciesframe$bioha/max(speciesframe$bioha)
+speciesframe$baha = speciesframe$baha/max(speciesframe$baha)
+speciesframe$qmd = speciesframe$qmd/max(speciesframe$qmd)
+speciesframe$Richness = speciesframe$Richness/max(speciesframe$Richness)
 
-data.rda = rda(main_data, supp_data[,1:ncol(supp_data)-1])
+enviroframe = datatable[,c("nearest", "contagion", "mingling", "dbhdiff")]
+enviroframe$nearest = enviroframe$nearest/max(enviroframe$nearest)
 
-fig = ordiplot(data.rda)
-ordilabel(fig, "species", col=2, cex=0.5, )
-ordihull(fig, group=supp_data$PublicLand, col = c(2,3))
-fig
+ordiframe = as.matrix(t(speciesframe)) %*% as.matrix(enviroframe)
+
+#BiodiversityRGUI()
+
+analysis.pca = rda(ordiframe)
+
+analysis.pca
+scrs <- scores(analysis.pca, display = c("sites", "species"), scaling = 3)
+xlim <- with(scrs, range(species[,1], sites[,1]))
+ylim <- with(scrs, range(species[,2], sites[,2]))
+
+pca.plot = biplot(analysis.pca, type = c('points', 'points'), main = 'PCA of relative species abundances against spatial indices', xlim=xlim, ylim=ylim)
+ordipointlabel(pca.plot, add = TRUE)
+savepng('updatedpca.png')
+
+set.seed(1)
+analysis.nmds = metaMDS(ordiframe)
+analysis.nmds
+
+ndms.plot = ordiplot(analysis.nmds, main = 'NMDS of relative species abundances against spatial indices')
+ordipointlabel(ndms.plot, add = TRUE)
+savepng('updatedndms.png')

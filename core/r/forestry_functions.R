@@ -51,3 +51,21 @@ basalha = function(basalvector, plotarea=1600, unittype="metric") {
     }
     return(basalha)
 }
+
+treeMass <- function(speciesgroup, dbh) {
+    # biomass for individual tree
+    # dbh in CM
+    # returns in kg
+    
+    bparams = read.csv(file.path('src', 'csv', 'bparams.csv'))
+    
+    # fetch contants
+    b0 = bparams$b0[match(speciesgroup, bparams$species.group)]
+    b1 = bparams$b1[match(speciesgroup, bparams$species.group)]
+    
+    # biomass equation
+    biomass = exp(b0 + b1 * log(dbh))
+    
+    return(biomass)
+    
+}
