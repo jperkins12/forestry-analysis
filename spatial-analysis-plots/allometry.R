@@ -4,6 +4,7 @@ library(stargazer)
 library(broom)
 library(tidyverse)
 library(scales)
+library(Metrics)
 source('plot_data_gen.R')
 
 # load sample data
@@ -38,14 +39,6 @@ vars_frame = as_tibble(
 
 colnames(vars_frame) = c('Species', 'Intercept', 'Std. Error (I)', 'Coefficient', 'Std. Error (C)', 'R-squared', 'DF')
 vars_frame = type_convert(vars_frame)
-
-# return latex table of regression vars
-stargazer(
-    vars_frame %>% 
-        arrange(Species) %>% 
-        mutate_if(is.double, funs(round(., 3))),
-    digits = 3, summary = FALSE, rownames = FALSE
-    )
 
 # assign each row to 1 of 2 sample groups
 # sampleTreeData$sampleGroup = as.numeric(
@@ -97,9 +90,55 @@ estDBH = function(spc, height) {
 
 sampleTreeData$estDBH = mapply(estDBH, sampleTreeData$Species, sampleTreeData$Total.Height)
 
-write_csv(sampleTreeData, "C:\\Users\\Jamie\\Dropbox\\Thesis\\R\\tables\\sampleEstimates.csv")
+#write_csv(sampleTreeData, "C:\\Users\\Jamie\\Dropbox\\Thesis\\R\\tables\\sampleEstimates.csv")
 
 treeData$estDBH = mapply(estDBH, treeData$Species, treeData$EstHeight)
+
+plotmeans = sampleTreeData %>%
+    group_by(Plot) %>%
+    summarise(`Mean Radius` = mean(Actual.Radius, na.rm = TRUE),
+              `Mean Estimate` = mean(Est.Radius, na.rm = TRUE),
+              `Mean Difference` = mean(Est.Radius - Actual.Radius, na.rm = TRUE),
+              RMSE = rmse(Actual.Radius, Est.Radius)) %>%
+    left_join(metadata %>%
+                  select(Plot, Forest.Type), by = c("Plot" = "Plot")) %>%
+    left_join(plotCode_ref, by = c('Plot' = 'value')) %>%
+    rename(`Forest Type` = Forest.Type, `Plot ID` = ID) %>%
+    select(`Plot ID`, `Forest Type`, `Mean Radius`, `Mean Estimate`, `Mean Difference`)
+
+stargazer(plotmeans %>%
+              filter(!is.na(`Mean Estimate`)) %>%
+              mutate(`Mean Radius` = round(`Mean Radius`, digits = 3),
+                     `Mean Estimate` = round(`Mean Estimate`, digits = 3),
+                     `Mean Difference` = round(`Mean Difference` , digits = 3)),
+          rownames = FALSE, summary = FALSE, digits = 3)
+
+stargazer(plotmeans %>%
+    filter(!is.na(`Mean Estimate`)) %>%
+    group_by(`Forest Type`) %>%
+    summarise(`Mean Radius` = mean(`Mean Radius`),
+              `Mean Estimate` = mean(`Mean Estimate`),
+              `Mean Difference` = mean(`Mean Difference`),
+              RMSE = rmse(`Mean Radius`, `Mean Estimate`)),
+    rownames = FALSE,
+    summary = FALSE)
+
+
+# return latex table of regression vars
+stargazer(
+    vars_frame %>%
+        arrange(Species) %>% 
+        mutate_if(is.double, funs(round(., 3))) %>%
+        left_join(sampleTreeData %>%
+                      filter(!is.na(DBH), !is.na(Species), !is.na(estDBH)) %>%
+                      group_by(Species) %>%
+                      summarize(RMSE = round(rmse(DBH, estDBH), digits=3)), by = c('Species' = 'Species')),
+    digits = 3, summary = FALSE, rownames = FALSE
+)
+
+
+
+rmse(sampleTreeData$DBH[sampleTreeData$Species =='PINPON' & !is.na(sampleTreeData$DBH)], sampleTreeData$estDBH[sampleTreeData$Species=='PINPON' & !is.na(sampleTreeData$DBH)])
 
 treeData %>%
     as_tibble() %>%
@@ -121,7 +160,7 @@ stargazer(treeData %>%
     filter(!is.na(estDBH)) %>%
     mutate(error = (estDBH-DBH)/DBH) %>%
     group_by(Species) %>%
-    dplyr::summarise(`Mean Error` = percent(mean(error, na.rm = TRUE)), Obs = n()), summary = FALSE, rownames = FALSE)
+    dplyr::summarise(`Mean Error` = percent(mean(error, na.rm = TRUE)), counts = n()), summary = FALSE, rownames = FALSE)
 
 ## statistical analysis
 testdata.height =
@@ -140,9 +179,14 @@ height.row = c(
     height.ttest$statistic,
     height.ttest$p.value,
     height.summary$coefficients[1],
+    height.summary$coefficients[3],
     height.summary$coefficients[2],
+    height.summary$coefficients[4],
     height.summary$r.squared,
-    height.ttest$parameter
+    height.ttest$parameter,
+    mean(testdata.height$Est.Height-testdata.height$Total.Height),
+    sd(testdata.height$Est.Height-testdata.height$Total.Height)/sqrt(length(testdata.height$Est.Height-testdata.height$Total.Height)),
+    rmse(testdata.height$Total.Height, testdata.height$Est.Height)
 )
 
 testdata.crown =
@@ -161,9 +205,14 @@ crown.row = c(
     crown.ttest$statistic,
     crown.ttest$p.value,
     crown.summary$coefficients[1],
+    crown.summary$coefficients[3],
     crown.summary$coefficients[2],
+    crown.summary$coefficients[4],
     crown.summary$r.squared,
-    crown.ttest$parameter
+    crown.ttest$parameter,
+    mean(testdata.crown$Est.Radius - testdata.crown$Actual.Radius),
+    sd(testdata.crown$Est.Radius - testdata.crown$Actual.Radius)/sqrt(length(testdata.crown$Est.Radius - testdata.crown$Actual.Radius)),
+    rmse(testdata.crown$Actual.Radius, testdata.crown$Est.Radius)
 )
 
 dbh.ftest = var.test(treeData$DBH[!is.na(treeData$estDBH)], treeData$estDBH[!is.na(treeData$estDBH)])
@@ -177,9 +226,14 @@ dbh.row = c(
     dbh.ttest$statistic,
     dbh.ttest$p.value,
     dbh.summary$coefficients[1],
+    dbh.summary$coefficients[3],
     dbh.summary$coefficients[2],
+    dbh.summary$coefficients[4],
     dbh.summary$r.squared,
-    dbh.ttest$parameter
+    dbh.ttest$parameter,
+    mean(treeData$estDBH[!is.na(treeData$estDBH)] - treeData$DBH[!is.na(treeData$estDBH)], na.rm = TRUE),
+    sd(treeData$estDBH[!is.na(treeData$estDBH)] - treeData$DBH[!is.na(treeData$DBH)], na.rm = TRUE)/sqrt(length(na.omit(treeData$estDBH[!is.na(treeData$estDBH)] - treeData$DBH[!is.na(treeData$estDBH)]))),
+    rmse(treeData$DBH[!is.na(treeData$DBH)], treeData$estDBH[!is.na(treeData$estDBH)])
 )
 
 cols = c(
@@ -188,9 +242,14 @@ cols = c(
     "T-Statistic",
     "p-value (T)",
     "Intercept",
+    "Std Error (I)",
     "Coefficient",
+    "Std Error (C)",
     "R-Squared",
-    "DF"
+    "DF",
+    "Mean Difference",
+    "Std Error",
+    "RMSE"
 )
 rowlabels = c("Height", "Crown Radius", "DBH")
 
@@ -200,7 +259,8 @@ rownames(stats.data) = rowlabels
 stats.data = signif(stats.data, 3)
 
 stargazer(stats.data[,c("F-Statistic", "p-value (F)", "T-Statistic", "p-value (T)", "DF")], summary = FALSE)
-stargazer(stats.data[,c("Intercept", "Coefficient", "R-Squared")], summary = FALSE)
+stargazer(stats.data[,c("Intercept", "Std Error (I)", "Coefficient", "Std Error (C)", "R-Squared")], summary = FALSE)
+stargazer(stats.data[,c("Mean Difference", "Std Error", "RMSE")], summary = FALSE)
 
 ## add plots
 

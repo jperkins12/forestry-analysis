@@ -97,7 +97,7 @@ xvar = 'tpha'
 xlab = 'Trees/ha'
 yvar = 'nearest'
 ylab = 'Nearest Neighbor (m)'
-titletext = 'Mean Nearset Neighbor as a function of trees per hectare'
+titletext = 'Mean nearest neighbor as a function of trees per hectare'
 eqx = 900
 eqy = 5.15
 
@@ -109,8 +109,8 @@ xvar = 'qmd'
 xlab = 'Quadratic Mean Diameter (cm)'
 yvar = 'nearest'
 ylab = 'Nearest Neighbor (m)'
-titletext = 'Mean Nearset Neighbor as a function of quadratic mean diameter'
-eqx = 20
+titletext = 'Mean nearest neighbor as a function of quadratic mean diameter'
+eqx = 23
 eqy = 6.5
 
 plotvars(datatable, xcol = xvar, ycol = yvar, xlab = xlab, ylab = ylab, title = titletext, eqx = eqx, eqy = eqy)

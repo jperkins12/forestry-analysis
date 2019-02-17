@@ -18,6 +18,7 @@ main = function(table = 'main') {
 
     # Load stem location data
     dirPath = file.path("F:", "Box Sync", "OR_Data", "geo_files")
+    #dirPath = file.path('C:', 'Users', 'Jamie', 'Box Sync', 'OR_Data', 'geo_files')
     flist = list.files(dirPath, pattern = ".*Geo.*")
     
     loadData = do.call("rbind", lapply(file.path(dirPath, flist), geoCsv))
@@ -35,10 +36,13 @@ main = function(table = 'main') {
     ##################################################
     
     sample_dirpath = file.path("F:", "Box Sync", "OR_Data", "SampleTree_files")
+    #sample_dirpath = file.path('C:', 'Users', 'Jamie', 'Box Sync', 'OR_Data', 'SampleTree_files')
+
     sample_flist = list.files(sample_dirpath, pattern = ".*sampleTrees.*")
     
     #load height estimates
     estDir = 'F:\\Box Sync\\OR_Data\\Accuracy_Assessment'
+    #estDir = 'C:\\Users\\Jamie\\Box Sync\\OR_Data\\Accuracy_Assessment'
     est_flist = list.files(estDir, pattern = '.*sampleStats.*')
     
     sampleData = do.call("rbind", lapply(file.path(sample_dirpath, sample_flist), sampleCsv))
@@ -65,7 +69,7 @@ main = function(table = 'main') {
     sp.abundance = data.frame(matrix(nrow = length(plots), ncol = length(species)), row.names = plots)
     colnames(sp.abundance) = species
     
-    treefreq = count(loadData, c("Species", "Plot"))
+    treefreq = plyr::count(loadData, c("Species", "Plot"))
     
     for (i in 1:nrow(treefreq)) {
         
@@ -137,7 +141,7 @@ main = function(table = 'main') {
 
 getHeightEstimates = function() {
     
-    modelDir = file.path("K:", "OR_Perkins", "OR_Imagery_2015", "*", "*", "Model", "temp", "*_treeCrowns_stats.shp")
+    modelDir = file.path("D:", "OR_Perkins", "OR_Imagery_2015", "*", "*", "Model", "temp", "*_treeCrowns_stats.shp")
     shpPaths = Sys.glob(modelDir)
     shpData = do.call("rbind", lapply(shpPaths, readshpData))
 
@@ -146,11 +150,16 @@ getHeightEstimates = function() {
     return(treeData)
 }
 
-maindata = main()
+maindata = as_tibble(main(), rownames = 'plot')
 sampledata = main(table = 'sample')
 treeData = main(table = 'trees')
+metadata = read_csv("F:\\Box Sync\\OR_Data\\Additional_Data\\Additional_Data.csv")
+plotCode_ref = read_csv(file.path("C:", "Users", "Jamie", "Dropbox", "Thesis", "R", "tables", "plotCodes.csv"))
+
 
 treeData = getHeightEstimates()
 
+#plotCode_ref = maindata %>% %>% rowid_to_column(var = "ID")
+# write.csv(plotCode_ref, file.path("C:", "Users", "Jamie", "Dropbox", "Thesis", "R", "tables", "plotCodes.csv"), row.names = FALSE)
 
 # write.csv(maindata, file.path("C:", "Users", "Jamie", "Dropbox", "Thesis", "R", "tables", "forestdata.csv"))
